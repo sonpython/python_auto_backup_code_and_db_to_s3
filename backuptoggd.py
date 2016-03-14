@@ -118,7 +118,9 @@ else:
         print('backup db %s' % backupdb)
 
 del_old_db_backup_command = "rm -f {0}/*-{1}.sql.gz".format(target_db_dir, new_id - day_store)
-if os.system(del_old_db_backup_command) == 0:
+print('del old db backup file')
+del_old_db_backup_command_result = os.system(del_old_db_backup_command)
+if del_old_db_backup_command_result == 0:
     print("Successful del oldest backup database file")
 else:
     print("del old Backup file FAILED on %s" % (del_old_db_backup_command))
