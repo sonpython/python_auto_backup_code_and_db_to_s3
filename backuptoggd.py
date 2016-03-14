@@ -15,11 +15,11 @@ def getVarFromFile(filename):
     rootpass = imp.load_source('data', '', f)
     f.close()
 
-
-getVarFromFile('/home/vpssim.conf')
+if not 'pg' in sys.argv:
+    getVarFromFile('/home/vpssim.conf')
+    password = rootpass.mariadbpass
 
 username = "root"
-password = rootpass.mariadbpass
 hostname = "localhost"
 
 source = '/home'
@@ -93,10 +93,14 @@ if not os.path.exists(target_db_dir):
 
 if 'pg' in sys.argv:
     ###### if backup postgres ######
-    os.popen('touch ~/.pgpass')
-    os.popen('chmod 0600 ~/.pgpass')
-    os.popen("echo 'localhost:5432:*:postgres:{}' ~/.pgpass".format(sys.argv[1]))
-    database_list_command = "pg_dumpall -U postgres -h localhost -p 5432 --clean | gzip > %s/%s-%s-%s.sql.gz" % (target_db_dir, now, 'database', str(new_id))
+    if not os.path.exists('~/.pgpass'):
+        print(os.popen('touch ~/.pgpass'))
+        print(os.popen('chmod 0600 ~/.pgpass'))
+        print(os.popen("echo 'localhost:5432:*:postgres:{}' ~/.pgpass".format(sys.argv[1])))
+    filename = "%s/%s-%s-%s.sql" % (target_db_dir, now, 'postgres_database', str(new_id))
+    database_list_command = "pg_dumpall -U postgres -h localhost -p 5432 --clean | gzip > %s.gz" % (filename)
+    print(os.popen(database_list_command))
+    database_list.append(filename)
 
 else:
     # Get a list of databases with :
@@ -165,11 +169,11 @@ for aa in code_list:
     gpath = your_ip
     fpath = aa
     fname = aa.split('/')[-1]
-    print(uploadtoggd(gpath, fname, fpath))
+    print('transfer code to ggdrive ok {}==>'.format(uploadtoggd(gpath, fname, fpath)))
 
 # transfer db to s3
 for bb in database_list:
     gpath = your_ip
     fpath = '%s.gz' % bb
     fname = '%s.gz' % bb.split('/')[-1]
-    print(uploadtoggd(gpath, fname, fpath))
+    print('transfer database to ggdrive ok {}==>'.format(uploadtoggd(gpath, fname, fpath)))
