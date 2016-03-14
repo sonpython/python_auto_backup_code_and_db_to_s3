@@ -4,6 +4,7 @@ import glob
 import re
 import socket
 import imp
+import sys
 
 script_path = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
@@ -89,25 +90,40 @@ else:
 if not os.path.exists(target_db_dir):
     os.mkdir(target_db_dir)
 
-# Get a list of databases with :
-database_list_command = "mysql -u %s -p%s -h %s --silent -N -e 'show databases'" % (username, password, hostname)
-for database in os.popen(database_list_command).readlines():
-    database = database.strip()
-    if database == 'information_schema':
-        continue
-    if database == 'performance_schema':
-        continue
-    filename = "%s/%s-%s-%s.sql" % (target_db_dir, now, database, str(new_id))
-    database_list.append(filename)
-    backupdb = os.popen("mysqldump -u %s -p%s -h %s -e --opt -c %s | gzip -c > %s.gz" % (
-        username, password, hostname, database, filename))
-    print('backup db %s' % backupdb)
+
+if 'pg' in sys.argv:
+    ###### if backup postgres ######
+    os.popen('touch ~/.pgpass')
+    os.popen('chmod 0600 ~/.pgpass')
+    os.popen("echo 'localhost:5432:*:postgres:{}' ~/.pgpass".format(sys.argv[1]))
+    database_list_command = "pg_dumpall -U postgres -h localhost -p 5432 --clean | gzip > %s/%s-%s-%s.sql.gz" % (target_db_dir, now, 'database', str(new_id))
+
+else:
+    # Get a list of databases with :
+    database_list_command = "mysql -u %s -p%s -h %s --silent -N -e 'show databases'" % (username, password, hostname)
+    for database in os.popen(database_list_command).readlines():
+        database = database.strip()
+        if database == 'information_schema':
+            continue
+        if database == 'performance_schema':
+            continue
+        filename = "%s/%s-%s-%s.sql" % (target_db_dir, now, database, str(new_id))
+        database_list.append(filename)
+        backupdb = os.popen("mysqldump -u %s -p%s -h %s -e --opt -c %s | gzip -c > %s.gz" % (
+            username, password, hostname, database, filename))
+        print('backup db %s' % backupdb)
 
 del_old_db_backup_command = "rm -f {0}/*-{1}.sql.gz".format(target_db_dir, new_id - day_store)
 if os.system(del_old_db_backup_command) == 0:
     print("Successful del oldest backup database file")
 else:
     print("del old Backup file FAILED on %s" % (del_old_db_backup_command))
+
+
+
+
+
+#### transfer file to google drive ####
 
 from pydrive.auth import GoogleAuth
 
