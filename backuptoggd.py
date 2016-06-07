@@ -104,7 +104,22 @@ try:
         database_list_command = "pg_dumpall -U postgres -h localhost -p 5432 --clean | gzip > %s.gz" % (filename)
         print(os.popen(database_list_command))
         database_list.append(filename)
-
+        
+    elif 'pg' and 'mysql' in sys.argv:
+        # Get a list of databases with :
+        database_list_command = "mysql -u %s -p%s -h %s --silent -N -e 'show databases'" % (username, password, hostname)
+        for database in os.popen(database_list_command).readlines():
+            database = database.strip()
+            if database == 'information_schema':
+                continue
+            if database == 'performance_schema':
+                continue
+            filename = "%s/%s-%s-%s.sql" % (target_db_dir, now, database, str(new_id))
+            database_list.append(filename)
+            backupdb = os.popen("mysqldump -u %s -p%s -h %s -e --opt -c %s | gzip -c > %s.gz" % (
+                username, password, hostname, database, filename))
+            print('backup db %s' % backupdb)
+            
     else:
         # Get a list of databases with :
         database_list_command = "mysql -u %s -p%s -h %s --silent -N -e 'show databases'" % (username, password, hostname)
